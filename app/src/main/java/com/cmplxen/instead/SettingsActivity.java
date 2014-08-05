@@ -103,15 +103,6 @@ public class SettingsActivity extends PreferenceActivity {
                 || !isXLargeTablet(context);
     }
 
-    /** {@inheritDoc} */
-    @Override
-    @TargetApi(Build.VERSION_CODES.HONEYCOMB)
-    public void onBuildHeaders(List<Header> target) {
-        if (!isSimplePreferences(this)) {
-            loadHeadersFromResource(R.xml.pref_headers, target);
-        }
-    }
-
     /**
      * A preference value change listener that updates the preference's summary
      * to reflect its new value.
