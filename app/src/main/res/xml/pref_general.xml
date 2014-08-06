@@ -6,8 +6,8 @@
 
     <CheckBoxPreference
         android:key="example_checkbox"
-        android:title="@string/pref_title_social_recommendations"
-        android:summary="@string/pref_description_social_recommendations"
+        android:title="@string/pref_title_suggestion_service"
+        android:summary="@string/pref_description_suggestion_service"
         android:defaultValue="true" />
 
     <!-- NOTE: EditTextPreference accepts EditText attributes. -->
