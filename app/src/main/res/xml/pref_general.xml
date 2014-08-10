@@ -5,7 +5,7 @@
         android:title="General" />
 
     <CheckBoxPreference
-        android:key="example_checkbox"
+        android:key="enable_instead_checkbox"
         android:title="@string/pref_title_suggestion_service"
         android:summary="@string/pref_description_suggestion_service"
         android:defaultValue="true" />
