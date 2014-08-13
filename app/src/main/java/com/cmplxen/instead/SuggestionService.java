@@ -19,6 +19,9 @@ import android.graphics.PixelFormat;
 import android.view.Gravity;
 import android.content.Context;
 
+import java.util.Iterator;
+import java.util.concurrent.ConcurrentLinkedQueue;
+
 /*
 Suggestion selection goal: Deliver usable selections
 - Don't repeat suggestions
@@ -31,11 +34,11 @@ getNext() {
 }
  */
 
+// TODO: consider serializing all state to SharedPreferences and switching this to an IntentService
 public class SuggestionService extends Service {
     private String[] genericSuggestions;
     private int genericSuggestionsPosition = 0;
-    private BroadcastReceiver screenLockReceiver;
-    private SuggestionView mView;
+    private ScreenLockReceiver mScreenLockReceiver;
 
     public SuggestionService() {
     }
@@ -60,7 +63,7 @@ public class SuggestionService extends Service {
         // For time consuming an long tasks you can launch a new thread here...
 
         Log.d("suggestion_service", "started");
-        genericSuggestions = getResources().getStringArray(R.array.default_suggestions);
+
 
         // TODO:
         // Get the next suggestion and write it to the lock screen
@@ -83,20 +86,17 @@ public class SuggestionService extends Service {
 
 
 
-        // Create a view and params(displays the suggestion)
-        mView = new SuggestionView(this);
+
 
 
 
         // Create a BroadcastReceiver to display the suggestion when the lock
         // screen is enabled (and not display it when the lock screen is disabled)
 
-        IntentFilter filter = new IntentFilter();
-        filter.addAction("android.intent.action.USER_PRESENT");
-        filter.addAction("android.intent.action.SCREEN_OFF");
-        filter.addAction("android.intent.action.SCREEN_ON");
-        screenLockReceiver = new ScreenLockReceiver(mView);
-        registerReceiver(screenLockReceiver, filter);
+
+        mScreenLockReceiver = new ScreenLockReceiver(this);
+        mScreenLockReceiver.register();
+
 
 
     }
@@ -104,9 +104,9 @@ public class SuggestionService extends Service {
     @Override
     public void onDestroy() {
         Log.d("suggestion_service", "destroyed");
-        unregisterReceiver(screenLockReceiver);
-        screenLockReceiver = null;
-        mView = null;
+        //unregisterReceiver(screenLockReceiver);
+        mScreenLockReceiver.unregister();
+        mScreenLockReceiver = null;
     }
 }
 
@@ -184,10 +184,59 @@ class SuggestionView extends View {
     }
 }
 
+class SuggestionFeed {
+    private String[] genericSuggestions;
+    private int genericSuggestionsPosition = 0;
+    private ConcurrentLinkedQueue<String> mReceiverQueue;
+
+    public SuggestionFeed(SuggestionService service) {
+        // create: init from defaults, remember previous positions, cached data
+        // TODO: remember positions, cache via SharedPreference maybe
+        // For now I just load the default list into the queue
+        mReceiverQueue = new ConcurrentLinkedQueue<String>();
+        for (String s : service.getResources().getStringArray(R.array.default_suggestions)) {
+            mReceiverQueue.add(s);
+        }
+    }
+
+    public String next() {
+        String result = mReceiverQueue.poll();
+        if (result != null) {
+            // TODO: send an Intent back here (via the Suggestion Service) STOPPED HERE
+        }
+        return result;
+    }
+
+    public void update(String suggestionSeen) {
+        // TODO: call this when an intent from next() is received and update some sort of table of suggestions
+        // TODO: could measure time deltas here to be "smart" :)
+    }
+}
+
 class ScreenLockReceiver extends BroadcastReceiver {
-    SuggestionView mView;
-    public ScreenLockReceiver(SuggestionView view) {
-        mView = view;
+    SuggestionView mSuggestionView;
+    SuggestionService mSuggestionService;
+    public ScreenLockReceiver(SuggestionService service) {
+        mSuggestionService = service;
+    }
+
+    // For orthogonality: GC means I can't count on destructor being call synchronously (i.e.
+    // responsively when user disables Instead), so I have to call register/unregister
+    // explicitly from Service.
+    public void register() {
+        // Create a view and params(displays the suggestion)
+        mSuggestionView = new SuggestionView(mSuggestionService);
+
+        IntentFilter filter = new IntentFilter();
+        filter.addAction("android.intent.action.USER_PRESENT");
+        filter.addAction("android.intent.action.SCREEN_OFF");
+        filter.addAction("android.intent.action.SCREEN_ON");
+        mSuggestionService.registerReceiver(this, filter);
+    }
+
+    public void unregister() {
+        mSuggestionService.unregisterReceiver(this);
+        mSuggestionView = null;
     }
 
     @Override
@@ -197,11 +246,12 @@ class ScreenLockReceiver extends BroadcastReceiver {
         Log.d("ScreenLockReceiver", action);
         Toast.makeText(context, action, Toast.LENGTH_LONG).show();
         if (action.equals(Intent.ACTION_USER_PRESENT)) {
-            mView.hide();
+            mSuggestionView.hide();
         } else if (action.equals(Intent.ACTION_SCREEN_ON)) {
-            mView.show();
+            //mSuggestionView.show(); // TODO: maybe i don't need this; ACTION_SCREEN_OFF is more
+            // responsive (if it always works)
         } else if (action.equals(Intent.ACTION_SCREEN_OFF)) {
-            //mView.show(); // TODO: maybe i don't need this
+            mSuggestionView.show();
         }
     }
 }
