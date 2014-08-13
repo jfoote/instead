@@ -29,9 +29,14 @@
     </application>
 
     <!--
-         ACCESS_FINE_LOCATION is used to tailor suggestions to the user's
-        location
+        - ACCESS_FINE_LOCATION is used to tailor suggestions to the user's
+              location
+        - WRITE_SETTINGS is used to allow writing to the lock screen
+        - SYSTEM_ALERT_WINDOW is used to (try to) create a pop-up window
+              from the Suggestion Service
     -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.WRITE_SETTINGS" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
 </manifest>
