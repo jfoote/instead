@@ -85,7 +85,9 @@ public class SettingsActivity extends PreferenceActivity {
             Boolean boolValue = (Boolean)value;
 
             if (boolValue == true) {
-                startService(new Intent(getApplicationContext(), SuggestionService.class));
+                Intent initIntent = new Intent(getApplicationContext(), SuggestionService.class);
+                initIntent.setAction(SuggestionService.INITIALIZE_ACTION);
+                startService(initIntent);
             } else if (boolValue == false) {
                 stopService(new Intent(getApplicationContext(), SuggestionService.class));
             }

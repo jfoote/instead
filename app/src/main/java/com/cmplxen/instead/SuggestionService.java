@@ -4,6 +4,7 @@ import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.PorterDuff;
 import android.os.IBinder;
 
 import android.util.Log;
@@ -43,6 +44,7 @@ public class SuggestionService extends Service {
     private String[] genericSuggestions;
     private int genericSuggestionsPosition = 0;
     private ScreenLockReceiver mScreenLockReceiver;
+    public static final String INITIALIZE_ACTION = "com.cmplxen.instead.intent.action.INITIALIZE_ACTION";
 
     public SuggestionService() {
     }
@@ -56,21 +58,46 @@ public class SuggestionService extends Service {
     @Override
     public void onStart(Intent intent, int startId) {
         String action = intent.getAction();
-        if (action == null){
-            action = "(null)";
+
+        if (action == null) {
+            Log.d("SuggestionService::onStart", "(null)");
         }
         Log.d("SuggestionService::onStart", action);
 
-        // if intent == updatequeue
-        // else if intent == start
-        // else if intent == locationchanged
+        if (action == INITIALIZE_ACTION){
 
-        Log.d("suggestion_service", "started");
+            Log.d("SuggestionService", "started");
+
+            // Create a BroadcastReceiver to handle displaying messages to the lock screen
+            // and fill up its message queue
+            mScreenLockReceiver = new ScreenLockReceiver(this);
+            for (String s : this.getResources().getStringArray(R.array.default_suggestions)) {
+                mScreenLockReceiver.suggestionQueue.add(s);
+            }
+            mScreenLockReceiver.register();
+
+        } else if (action == ScreenLockReceiver.SUGGESTION_SEEN_ACTION) {
+            // TODO: update the scoring/queue/serialize stuff
+            // things to cache, maybe their location (depending on how responsive the API is)
+            //    - count of how many times user has seen a suggestion
+            // STOPPED HERE:
+            // heuristic: seen >> location-aware > goodness_rank
+            //    score = seen * 100 + location-aware * 50 + goodness
+            //   try to distribute goodness evenly across each list
+            //   we should store only "seen"
+            //  TODOs:
+            //    - switch to a priority queue
+            //    - somehow define the default list (and therefore other lists) with 'goodness_rank'
+            //    - make the above work, then add support for serializing/de-serializing 'seen' count
+            //    - move on: add more lists and make it location-aware
+        }
+
+
 
 
         // TODO:
         // Get the next suggestion and write it to the lock screen
-        // Attach to screen on/off/lock events
+        // Attach to screen on/off/lock events [DONE]
         //   Screen on:
         //     - (should display the current suggestion)
         //     - mark the current suggestion as viewed
@@ -81,18 +108,7 @@ public class SuggestionService extends Service {
         //   Location change:
         //     Do a places search and cache the result; factor into next suggestion
 
-        // This code prints a demo message to the lockscreen as an "alarm"
-        String message = "This is a test";
-        Settings.System.putString(getApplicationContext().getContentResolver(),
-                Settings.System.NEXT_ALARM_FORMATTED, message);
 
-        // Create a BroadcastReceiver to handle displaying messages to the lock screen
-        // and fill up its message queue
-        mScreenLockReceiver = new ScreenLockReceiver(this);
-        for (String s : this.getResources().getStringArray(R.array.default_suggestions)) {
-            mScreenLockReceiver.suggestionQueue.add(s);
-        }
-        mScreenLockReceiver.register();
 
 
 
@@ -117,8 +133,8 @@ class ScreenLockReceiver extends BroadcastReceiver {
     private SuggestionService mSuggestionService;
     public ConcurrentLinkedQueue<String> suggestionQueue = null;
 
-    public static final String SUGGESTION_SEEN_ACTION = "com.cmplxen.instead.intent.action.SUGGESTION_SEEN";
-    public static final String UPDATE_MESSAGE_ACTION = "com.cmplxen.instead.intent.action.UPDATE_MESSAGE";
+    public static final String SUGGESTION_SEEN_ACTION = "com.cmplxen.instead.intent.action.SUGGESTION_SEEN_ACTION";
+    public static final String SUGGESTION_SEEN_MESSAGE = "com.cmplxen.instead.intent.action.SUGGESTION_SEEN_MESSAGE";
 
     public ScreenLockReceiver(SuggestionService service) {
         mSuggestionService = service;
@@ -150,15 +166,8 @@ class ScreenLockReceiver extends BroadcastReceiver {
         suggestionQueue = null;
     }
 
-    private String mMessage = mDefaultMessage;
-    private static final String mDefaultMessage = "Temporarily out of ideas -- meditate!";
-
-    private void updateMessage() {
-        mMessage = suggestionQueue.poll();
-        if (mMessage == null) {
-            mMessage = mDefaultMessage;
-        }
-    }
+    private String mMessage = sDefaultMessage;
+    private static final String sDefaultMessage = "Temporarily out of ideas -- meditate!";
 
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -166,26 +175,26 @@ class ScreenLockReceiver extends BroadcastReceiver {
         String action = intent.getAction();
         Log.d("ScreenLockReceiver", action);
         Toast.makeText(context, action, Toast.LENGTH_LONG).show();
-        if (action.equals(Intent.ACTION_USER_PRESENT)) {
-            // hide the window,  grab the next message (so we are ready for another lock)
-            // then notify the suggestion service that the message was seen so it can
-            // change the queue if it needs to
-            // TODO: NOTE that if i stick with this, the queue-updater should just re-stuff
-            // the seen message (with an updated priority) and NOT tell this receiver
-            // to update as the queue ordering won't have changed
-            mSuggestionView.hide();
-            String seenMessage = mMessage;
-            updateMessage();
 
-            // TODO send 'suggestion seen intent' back to service so it can update the queue
-        //} else if (action.equals(Intent.ACTION_SCREEN_ON)) { //TODO: maybe i don't need this
+        if (action.equals(Intent.ACTION_USER_PRESENT)) {
+            mSuggestionView.hide();
+
+            // send 'suggestion seen intent' back to service so it can update the queue
+            Intent seenIntent = new Intent(context, SuggestionService.class);
+            seenIntent.setAction(SUGGESTION_SEEN_ACTION);
+            seenIntent.putExtra(SUGGESTION_SEEN_MESSAGE, mMessage);
+            context.startService(seenIntent);
+
+        //} else if (action.equals(Intent.ACTION_SCREEN_ON)) { //TODO: handle click-on/click-off
         // ACTION_SCREEN_OFF is more responsive (if it always works)
         } else if (action.equals(Intent.ACTION_SCREEN_OFF)) {
-
+            mMessage = suggestionQueue.poll();
+            if (mMessage == null) {
+                Log.d("ScreenLockReceiver", "suggestionQueue is out of messages");
+                mMessage = sDefaultMessage;
+            }
             mSuggestionView.show(mMessage);
-        } else if (action.equals(UPDATE_MESSAGE_ACTION)) { // service will notify BCR to updater when the queue ordering has changed
-            updateMessage();
-        }
+        } // else if (action.equals(ACTION_UPDATE_SUGGESTION ) {
 
     }
 }
@@ -212,6 +221,7 @@ class SuggestionView extends View {
             return;
         }
         this.messageText = message;
+        Log.d("SuggestionView", "calling addView");
         mWindowManager.addView(this, mParams);
         isHidden = false;
     }
@@ -221,6 +231,7 @@ class SuggestionView extends View {
             //Toast.makeText(context, "SV: hide() called but hidden!", Toast.LENGTH_LONG).show();
             return;
         }
+        Log.d("SuggestionView", "calling removeView");
         mWindowManager.removeView(this);
         isHidden = true;
     }
@@ -268,4 +279,12 @@ class SuggestionView extends View {
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
     }
+
+    /*
+    // This code prints a demo message to the lockscreen as an "alarm"; TODO: either make this
+    // optional or delete this stub code
+    String message = "This is a test";
+    Settings.System.putString(getApplicationContext().getContentResolver(),
+    Settings.System.NEXT_ALARM_FORMATTED, message);
+     */
 }
