@@ -35,6 +35,10 @@ getNext() {
  */
 
 // TODO: consider serializing all state to SharedPreferences and switching this to an IntentService
+// AS IT STANDS: i need to keep this alive to maintain a reference to the screen lock BroadcastReceiver
+//    if I allow it to be destroyed i can probably workaround the issue of communicating (it can read the suggestion
+//    via a SharedPreferences maybe, and just send an Intent back to notify that a thing has been read *maybe*
+//    though synchronization could be an issue), but i can't seem to create a view from within the BCR anyway, so it needs to persist
 public class SuggestionService extends Service {
     private String[] genericSuggestions;
     private int genericSuggestionsPosition = 0;
@@ -49,18 +53,17 @@ public class SuggestionService extends Service {
         throw new UnsupportedOperationException("Not yet implemented");
     }
 
-    private String getNextSuggestion() {
-        // Advance position and return suggestion
-        genericSuggestionsPosition++;
-        if (genericSuggestionsPosition >= genericSuggestions.length) {
-            genericSuggestionsPosition = 0;
-        }
-        return genericSuggestions[genericSuggestionsPosition];
-    }
-
     @Override
     public void onStart(Intent intent, int startId) {
-        // For time consuming an long tasks you can launch a new thread here...
+        String action = intent.getAction();
+        if (action == null){
+            action = "(null)";
+        }
+        Log.d("SuggestionService::onStart", action);
+
+        // if intent == updatequeue
+        // else if intent == start
+        // else if intent == locationchanged
 
         Log.d("suggestion_service", "started");
 
@@ -83,18 +86,12 @@ public class SuggestionService extends Service {
         Settings.System.putString(getApplicationContext().getContentResolver(),
                 Settings.System.NEXT_ALARM_FORMATTED, message);
 
-
-
-
-
-
-
-
-        // Create a BroadcastReceiver to display the suggestion when the lock
-        // screen is enabled (and not display it when the lock screen is disabled)
-
-
+        // Create a BroadcastReceiver to handle displaying messages to the lock screen
+        // and fill up its message queue
         mScreenLockReceiver = new ScreenLockReceiver(this);
+        for (String s : this.getResources().getStringArray(R.array.default_suggestions)) {
+            mScreenLockReceiver.suggestionQueue.add(s);
+        }
         mScreenLockReceiver.register();
 
 
@@ -110,6 +107,92 @@ public class SuggestionService extends Service {
     }
 }
 
+class PrioritizedSuggestion {
+    public int priority = 0;
+    public String text = null;
+}
+
+class ScreenLockReceiver extends BroadcastReceiver {
+    private SuggestionView mSuggestionView;
+    private SuggestionService mSuggestionService;
+    public ConcurrentLinkedQueue<String> suggestionQueue = null;
+
+    public static final String SUGGESTION_SEEN_ACTION = "com.cmplxen.instead.intent.action.SUGGESTION_SEEN";
+    public static final String UPDATE_MESSAGE_ACTION = "com.cmplxen.instead.intent.action.UPDATE_MESSAGE";
+
+    public ScreenLockReceiver(SuggestionService service) {
+        mSuggestionService = service;
+
+        // create: init from defaults, remember previous positions, cached data
+        // TODO: remember positions, cache via SharedPreference maybe
+        // For now I just load the default list into the queue
+        suggestionQueue = new ConcurrentLinkedQueue<String>();
+
+    }
+
+    // For orthogonality: GC means I can't count on destructor being call synchronously (i.e.
+    // responsively when user disables Instead), so I have to call register/unregister
+    // explicitly from Service.
+    public void register() {
+        // Create a view and params(displays the suggestion)
+        mSuggestionView = new SuggestionView(mSuggestionService);
+
+        IntentFilter filter = new IntentFilter();
+        filter.addAction("android.intent.action.USER_PRESENT");
+        filter.addAction("android.intent.action.SCREEN_OFF");
+        filter.addAction("android.intent.action.SCREEN_ON");
+        mSuggestionService.registerReceiver(this, filter);
+    }
+
+    public void unregister() {
+        mSuggestionService.unregisterReceiver(this);
+        mSuggestionView = null;
+        suggestionQueue = null;
+    }
+
+    private String mMessage = mDefaultMessage;
+    private static final String mDefaultMessage = "Temporarily out of ideas -- meditate!";
+
+    private void updateMessage() {
+        mMessage = suggestionQueue.poll();
+        if (mMessage == null) {
+            mMessage = mDefaultMessage;
+        }
+    }
+
+    @Override
+    public void onReceive(Context context, Intent intent) {
+        Toast.makeText(context, "ScreenLockReceiver invoked", Toast.LENGTH_LONG).show();
+        String action = intent.getAction();
+        Log.d("ScreenLockReceiver", action);
+        Toast.makeText(context, action, Toast.LENGTH_LONG).show();
+        if (action.equals(Intent.ACTION_USER_PRESENT)) {
+            // hide the window,  grab the next message (so we are ready for another lock)
+            // then notify the suggestion service that the message was seen so it can
+            // change the queue if it needs to
+            // TODO: NOTE that if i stick with this, the queue-updater should just re-stuff
+            // the seen message (with an updated priority) and NOT tell this receiver
+            // to update as the queue ordering won't have changed
+            mSuggestionView.hide();
+            String seenMessage = mMessage;
+            updateMessage();
+
+            // TODO send 'suggestion seen intent' back to service so it can update the queue
+        //} else if (action.equals(Intent.ACTION_SCREEN_ON)) { //TODO: maybe i don't need this
+        // ACTION_SCREEN_OFF is more responsive (if it always works)
+        } else if (action.equals(Intent.ACTION_SCREEN_OFF)) {
+
+            mSuggestionView.show(mMessage);
+        } else if (action.equals(UPDATE_MESSAGE_ACTION)) { // service will notify BCR to updater when the queue ordering has changed
+            updateMessage();
+        }
+
+    }
+}
+
+
+
+
 class SuggestionView extends View {
 
     private Paint mPaint;
@@ -121,11 +204,14 @@ class SuggestionView extends View {
 
     private boolean isHidden;
 
-    public void show() {
+    private String messageText = "No suggestion";
+
+    public void show(String message) {
         if (!isHidden) {
             //Toast.makeText(context, "SV: show() called but not hidden!", Toast.LENGTH_LONG).show();
             return;
         }
+        this.messageText = message;
         mWindowManager.addView(this, mParams);
         isHidden = false;
     }
@@ -165,7 +251,7 @@ class SuggestionView extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        canvas.drawText("test test test", 0, 100, mPaint);
+        canvas.drawText(this.messageText, 0, 100, mPaint);
     }
 
     @Override
@@ -181,77 +267,5 @@ class SuggestionView extends View {
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-    }
-}
-
-class SuggestionFeed {
-    private String[] genericSuggestions;
-    private int genericSuggestionsPosition = 0;
-    private ConcurrentLinkedQueue<String> mReceiverQueue;
-
-    public SuggestionFeed(SuggestionService service) {
-        // create: init from defaults, remember previous positions, cached data
-        // TODO: remember positions, cache via SharedPreference maybe
-        // For now I just load the default list into the queue
-        mReceiverQueue = new ConcurrentLinkedQueue<String>();
-        for (String s : service.getResources().getStringArray(R.array.default_suggestions)) {
-            mReceiverQueue.add(s);
-        }
-    }
-
-    public String next() {
-        String result = mReceiverQueue.poll();
-        if (result != null) {
-            // TODO: send an Intent back here (via the Suggestion Service) STOPPED HERE
-        }
-        return result;
-    }
-
-    public void update(String suggestionSeen) {
-        // TODO: call this when an intent from next() is received and update some sort of table of suggestions
-        // TODO: could measure time deltas here to be "smart" :)
-    }
-}
-
-class ScreenLockReceiver extends BroadcastReceiver {
-    SuggestionView mSuggestionView;
-    SuggestionService mSuggestionService;
-    public ScreenLockReceiver(SuggestionService service) {
-        mSuggestionService = service;
-    }
-
-    // For orthogonality: GC means I can't count on destructor being call synchronously (i.e.
-    // responsively when user disables Instead), so I have to call register/unregister
-    // explicitly from Service.
-    public void register() {
-        // Create a view and params(displays the suggestion)
-        mSuggestionView = new SuggestionView(mSuggestionService);
-
-        IntentFilter filter = new IntentFilter();
-        filter.addAction("android.intent.action.USER_PRESENT");
-        filter.addAction("android.intent.action.SCREEN_OFF");
-        filter.addAction("android.intent.action.SCREEN_ON");
-        mSuggestionService.registerReceiver(this, filter);
-    }
-
-    public void unregister() {
-        mSuggestionService.unregisterReceiver(this);
-        mSuggestionView = null;
-    }
-
-    @Override
-    public void onReceive(Context context, Intent intent) {
-        Toast.makeText(context, "ScreenLockReceiver invoked", Toast.LENGTH_LONG).show();
-        String action = intent.getAction();
-        Log.d("ScreenLockReceiver", action);
-        Toast.makeText(context, action, Toast.LENGTH_LONG).show();
-        if (action.equals(Intent.ACTION_USER_PRESENT)) {
-            mSuggestionView.hide();
-        } else if (action.equals(Intent.ACTION_SCREEN_ON)) {
-            //mSuggestionView.show(); // TODO: maybe i don't need this; ACTION_SCREEN_OFF is more
-            // responsive (if it always works)
-        } else if (action.equals(Intent.ACTION_SCREEN_OFF)) {
-            mSuggestionView.show();
-        }
     }
 }
