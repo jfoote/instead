@@ -20,8 +20,13 @@ import android.graphics.PixelFormat;
 import android.view.Gravity;
 import android.content.Context;
 
+import org.xmlpull.v1.XmlPullParserException;
+
+import java.io.IOException;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.PriorityBlockingQueue;
 
 /*
 Suggestion selection goal: Deliver usable selections
@@ -44,7 +49,11 @@ public class SuggestionService extends Service {
     private String[] genericSuggestions;
     private int genericSuggestionsPosition = 0;
     private ScreenLockReceiver mScreenLockReceiver;
+    private SuggestionFeed mFeed;
     public static final String INITIALIZE_ACTION = "com.cmplxen.instead.intent.action.INITIALIZE_ACTION";
+    public static final String SUGGESTION_SEEN_ACTION = "com.cmplxen.instead.intent.action.SUGGESTION_SEEN_ACTION";
+    public static final String SUGGESTION_SEEN_MESSAGE = "com.cmplxen.instead.intent.action.SUGGESTION_SEEN_MESSAGE";
+    public static final String SUGGESTION_SEEN_CATEGORY = "com.cmplxen.instead.intent.action.SUGGESTION_SEEN_CATEGORY";
 
     public SuggestionService() {
     }
@@ -68,15 +77,20 @@ public class SuggestionService extends Service {
 
             Log.d("SuggestionService", "started");
 
+            // Create feed of suggestions
+            try {
+                mFeed = new SuggestionFeed(this);
+            } catch (XmlPullParserException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
             // Create a BroadcastReceiver to handle displaying messages to the lock screen
             // and fill up its message queue
-            mScreenLockReceiver = new ScreenLockReceiver(this);
-            for (String s : this.getResources().getStringArray(R.array.default_suggestions)) {
-                mScreenLockReceiver.suggestionQueue.add(s);
-            }
+            mScreenLockReceiver = new ScreenLockReceiver(this, mFeed);
             mScreenLockReceiver.register();
 
-        } else if (action == ScreenLockReceiver.SUGGESTION_SEEN_ACTION) {
+        } else if (action == SuggestionService.SUGGESTION_SEEN_ACTION) {
             // TODO: update the scoring/queue/serialize stuff
             // things to cache, maybe their location (depending on how responsive the API is)
             //    - count of how many times user has seen a suggestion
@@ -90,10 +104,10 @@ public class SuggestionService extends Service {
             //    - somehow define the default list (and therefore other lists) with 'goodness_rank'
             //    - make the above work, then add support for serializing/de-serializing 'seen' count
             //    - move on: add more lists and make it location-aware
+
+            // TODO: ASSERT(mFeed and ScreenLockRecevier exist)
+            mFeed.handleSeen(intent);
         }
-
-
-
 
         // TODO:
         // Get the next suggestion and write it to the lock screen
@@ -123,27 +137,17 @@ public class SuggestionService extends Service {
     }
 }
 
-class PrioritizedSuggestion {
-    public int priority = 0;
-    public String text = null;
-}
+
 
 class ScreenLockReceiver extends BroadcastReceiver {
     private SuggestionView mSuggestionView;
     private SuggestionService mSuggestionService;
-    public ConcurrentLinkedQueue<String> suggestionQueue = null;
+    private SuggestionFeed mFeed;
 
-    public static final String SUGGESTION_SEEN_ACTION = "com.cmplxen.instead.intent.action.SUGGESTION_SEEN_ACTION";
-    public static final String SUGGESTION_SEEN_MESSAGE = "com.cmplxen.instead.intent.action.SUGGESTION_SEEN_MESSAGE";
 
-    public ScreenLockReceiver(SuggestionService service) {
+    public ScreenLockReceiver(SuggestionService service, SuggestionFeed feed) {
         mSuggestionService = service;
-
-        // create: init from defaults, remember previous positions, cached data
-        // TODO: remember positions, cache via SharedPreference maybe
-        // For now I just load the default list into the queue
-        suggestionQueue = new ConcurrentLinkedQueue<String>();
-
+        mFeed = feed;
     }
 
     // For orthogonality: GC means I can't count on destructor being call synchronously (i.e.
@@ -163,37 +167,26 @@ class ScreenLockReceiver extends BroadcastReceiver {
     public void unregister() {
         mSuggestionService.unregisterReceiver(this);
         mSuggestionView = null;
-        suggestionQueue = null;
     }
 
-    private String mMessage = sDefaultMessage;
-    private static final String sDefaultMessage = "Temporarily out of ideas -- meditate!";
+    private Suggestion mDisplayedSuggestion;
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        Toast.makeText(context, "ScreenLockReceiver invoked", Toast.LENGTH_LONG).show();
         String action = intent.getAction();
         Log.d("ScreenLockReceiver", action);
-        Toast.makeText(context, action, Toast.LENGTH_LONG).show();
 
         if (action.equals(Intent.ACTION_USER_PRESENT)) {
             mSuggestionView.hide();
-
-            // send 'suggestion seen intent' back to service so it can update the queue
-            Intent seenIntent = new Intent(context, SuggestionService.class);
-            seenIntent.setAction(SUGGESTION_SEEN_ACTION);
-            seenIntent.putExtra(SUGGESTION_SEEN_MESSAGE, mMessage);
-            context.startService(seenIntent);
+            mFeed.notifySeen(mDisplayedSuggestion);
 
         //} else if (action.equals(Intent.ACTION_SCREEN_ON)) { //TODO: handle click-on/click-off
         // ACTION_SCREEN_OFF is more responsive (if it always works)
-        } else if (action.equals(Intent.ACTION_SCREEN_OFF)) {
-            mMessage = suggestionQueue.poll();
-            if (mMessage == null) {
-                Log.d("ScreenLockReceiver", "suggestionQueue is out of messages");
-                mMessage = sDefaultMessage;
-            }
-            mSuggestionView.show(mMessage);
+        } else if (action.equals(Intent.ACTION_SCREEN_OFF)) { // assuming this is the only way screen gets locked
+            // ASSERT(mFeed returns something)
+            mDisplayedSuggestion = mFeed.pop();
+            mSuggestionView.show(mDisplayedSuggestion.mMessage);
+            Log.d("ScreenLockReceiver::onReceive", mDisplayedSuggestion.mMessage + "p:" + mDisplayedSuggestion.mPriority);
         } // else if (action.equals(ACTION_UPDATE_SUGGESTION ) {
 
     }
@@ -288,3 +281,17 @@ class SuggestionView extends View {
     Settings.System.NEXT_ALARM_FORMATTED, message);
      */
 }
+
+
+/*
+SuggestionFeed
+   + Init
+       - deserialize lists, create queue
+   + Save
+       - Serialize user/seen
+   + Queue
+
+BCR holds reference to queue
+Service creates queue and holds reference to queue
+
+ */
