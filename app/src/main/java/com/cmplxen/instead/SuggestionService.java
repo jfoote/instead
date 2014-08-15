@@ -28,17 +28,6 @@ import java.util.Iterator;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.PriorityBlockingQueue;
 
-/*
-Suggestion selection goal: Deliver usable selections
-- Don't repeat suggestions
-- Give usable suggestions
-getNext() {
-   if location-is-reliable:
-       get_location_idea
-    else:
-       get_default_suggestion
-}
- */
 
 // TODO: consider serializing all state to SharedPreferences and switching this to an IntentService
 // AS IT STANDS: i need to keep this alive to maintain a reference to the screen lock BroadcastReceiver
@@ -91,47 +80,21 @@ public class SuggestionService extends Service {
             mScreenLockReceiver.register();
 
         } else if (action == SuggestionService.SUGGESTION_SEEN_ACTION) {
-            // TODO: update the scoring/queue/serialize stuff
-            // things to cache, maybe their location (depending on how responsive the API is)
-            //    - count of how many times user has seen a suggestion
-            // STOPPED HERE:
-            // heuristic: seen >> location-aware > goodness_rank
-            //    score = seen * 100 + location-aware * 50 + goodness
-            //   try to distribute goodness evenly across each list
-            //   we should store only "seen"
-            //  TODOs:
-            //    - switch to a priority queue
-            //    - somehow define the default list (and therefore other lists) with 'goodness_rank'
-            //    - make the above work, then add support for serializing/de-serializing 'seen' count
-            //    - move on: add more lists and make it location-aware
+            // TODO:
+            //    - add support for serializing/de-serializing 'seen' count
+            //    - move on: add more lists and attach to location update events
+            //        - Location change:Do a places search and cache the result; factor into next suggestion
+            //
 
             // TODO: ASSERT(mFeed and ScreenLockRecevier exist)
             mFeed.handleSeen(intent);
         }
-
-        // TODO:
-        // Get the next suggestion and write it to the lock screen
-        // Attach to screen on/off/lock events [DONE]
-        //   Screen on:
-        //     - (should display the current suggestion)
-        //     - mark the current suggestion as viewed
-        //   Screen off/screen lock:
-        //     - get the next suggestion and display it
-        // Create the SuggestionFeed
-        // Attach to location update events
-        //   Location change:
-        //     Do a places search and cache the result; factor into next suggestion
-
-
-
-
 
     }
 
     @Override
     public void onDestroy() {
         Log.d("suggestion_service", "destroyed");
-        //unregisterReceiver(screenLockReceiver);
         mScreenLockReceiver.unregister();
         mScreenLockReceiver = null;
     }
@@ -273,25 +236,5 @@ class SuggestionView extends View {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
     }
 
-    /*
-    // This code prints a demo message to the lockscreen as an "alarm"; TODO: either make this
-    // optional or delete this stub code
-    String message = "This is a test";
-    Settings.System.putString(getApplicationContext().getContentResolver(),
-    Settings.System.NEXT_ALARM_FORMATTED, message);
-     */
 }
 
-
-/*
-SuggestionFeed
-   + Init
-       - deserialize lists, create queue
-   + Save
-       - Serialize user/seen
-   + Queue
-
-BCR holds reference to queue
-Service creates queue and holds reference to queue
-
- */
