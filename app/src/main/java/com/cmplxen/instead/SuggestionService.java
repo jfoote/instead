@@ -1,15 +1,10 @@
 package com.cmplxen.instead;
 
 import android.app.Service;
-import android.content.BroadcastReceiver;
 import android.content.Intent;
-import android.content.IntentFilter;
-import android.graphics.PorterDuff;
 import android.os.IBinder;
 
 import android.util.Log;
-import android.widget.Toast; // TODO: used for printf-style debugging, remove later
-import android.provider.Settings;
 
 // TODO: delete below if widget test doesn't work out
 import android.view.View;
@@ -23,10 +18,6 @@ import android.content.Context;
 import org.xmlpull.v1.XmlPullParserException;
 
 import java.io.IOException;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.PriorityBlockingQueue;
 
 
 // TODO: consider serializing all state to SharedPreferences and switching this to an IntentService
@@ -37,7 +28,7 @@ import java.util.concurrent.PriorityBlockingQueue;
 public class SuggestionService extends Service {
     private String[] genericSuggestions;
     private int genericSuggestionsPosition = 0;
-    private ScreenLockReceiver mScreenLockReceiver;
+    private LockScreenReceiver mLockScreenReceiver;
     private SuggestionFeed mFeed;
     public static final String INITIALIZE_ACTION = "com.cmplxen.instead.intent.action.INITIALIZE_ACTION";
     public static final String SUGGESTION_SEEN_ACTION = "com.cmplxen.instead.intent.action.SUGGESTION_SEEN_ACTION";
@@ -76,8 +67,8 @@ public class SuggestionService extends Service {
             }
             // Create a BroadcastReceiver to handle displaying messages to the lock screen
             // and fill up its message queue
-            mScreenLockReceiver = new ScreenLockReceiver(this, mFeed);
-            mScreenLockReceiver.register();
+            mLockScreenReceiver = new LockScreenReceiver(this, mFeed);
+            mLockScreenReceiver.register();
 
         } else if (action == SuggestionService.SUGGESTION_SEEN_ACTION) {
             // TODO:
@@ -95,67 +86,10 @@ public class SuggestionService extends Service {
     @Override
     public void onDestroy() {
         Log.d("suggestion_service", "destroyed");
-        mScreenLockReceiver.unregister();
-        mScreenLockReceiver = null;
+        mLockScreenReceiver.unregister();
+        mLockScreenReceiver = null;
     }
 }
-
-
-
-class ScreenLockReceiver extends BroadcastReceiver {
-    private SuggestionView mSuggestionView;
-    private SuggestionService mSuggestionService;
-    private SuggestionFeed mFeed;
-
-
-    public ScreenLockReceiver(SuggestionService service, SuggestionFeed feed) {
-        mSuggestionService = service;
-        mFeed = feed;
-    }
-
-    // For orthogonality: GC means I can't count on destructor being call synchronously (i.e.
-    // responsively when user disables Instead), so I have to call register/unregister
-    // explicitly from Service.
-    public void register() {
-        // Create a view and params(displays the suggestion)
-        mSuggestionView = new SuggestionView(mSuggestionService);
-
-        IntentFilter filter = new IntentFilter();
-        filter.addAction("android.intent.action.USER_PRESENT");
-        filter.addAction("android.intent.action.SCREEN_OFF");
-        filter.addAction("android.intent.action.SCREEN_ON");
-        mSuggestionService.registerReceiver(this, filter);
-    }
-
-    public void unregister() {
-        mSuggestionService.unregisterReceiver(this);
-        mSuggestionView = null;
-    }
-
-    private Suggestion mDisplayedSuggestion;
-
-    @Override
-    public void onReceive(Context context, Intent intent) {
-        String action = intent.getAction();
-        Log.d("ScreenLockReceiver", action);
-
-        if (action.equals(Intent.ACTION_USER_PRESENT)) {
-            mSuggestionView.hide();
-            mFeed.notifySeen(mDisplayedSuggestion);
-
-        //} else if (action.equals(Intent.ACTION_SCREEN_ON)) { //TODO: handle click-on/click-off
-        // ACTION_SCREEN_OFF is more responsive (if it always works)
-        } else if (action.equals(Intent.ACTION_SCREEN_OFF)) { // assuming this is the only way screen gets locked
-            // ASSERT(mFeed returns something)
-            mDisplayedSuggestion = mFeed.pop();
-            mSuggestionView.show(mDisplayedSuggestion.mMessage);
-            Log.d("ScreenLockReceiver::onReceive", mDisplayedSuggestion.mMessage + "p:" + mDisplayedSuggestion.mPriority);
-        } // else if (action.equals(ACTION_UPDATE_SUGGESTION ) {
-
-    }
-}
-
-
 
 
 class SuggestionView extends View {
