@@ -19,13 +19,35 @@ import org.xmlpull.v1.XmlPullParserException;
 
 import java.io.IOException;
 
+/*
+This file contains the core component of the application -- the suggestion service .
+ */
 
-// TODO: consider serializing all state to SharedPreferences and switching this to an IntentService
-// AS IT STANDS: i need to keep this alive to maintain a reference to the screen lock BroadcastReceiver
-//    if I allow it to be destroyed i can probably workaround the issue of communicating (it can read the suggestion
-//    via a SharedPreferences maybe, and just send an Intent back to notify that a thing has been read *maybe*
-//    though synchronization could be an issue), but i can't seem to create a view from within the BCR anyway, so it needs to persist
+// TODO:
+//    - move on: add more lists and attach to location update events
+//        - Location change:Do a places search and cache the result; factor into next suggestion
+//
+
 public class SuggestionService extends Service {
+    /*
+    The service that manages suggestions for the application. This service is created when
+    suggestions are enabled by the user.
+
+    ****
+    Design note: why this is a Service instead of an IntentService
+
+    To support the goal of having a suggestion appear instantaneously on the lock screen in the face
+    of many system events, I am using a threadsafe queue to pass suggestions from a Service (which
+    manages the feed of suggestions) to a BroadcastReceiver (which detects when the screen is locked,
+    etc.). For this reason the BroadcastReceiver must maintain a reference to the queue, and thus
+    it must stay in memory. This is achieved by having the Service stay in memory while holding a
+    reference to the BroadcastReceiver.
+
+    One alternative may be to serialize suggestions to a SharedPreferences object and use that
+    for communication from the Service to the BroadcastReceiver. Potential downsides to this include
+    slowdown (I believe a SharedPreferences object wraps a file) and race conditions.
+    */
+
     private LockScreenReceiver mLockScreenReceiver;
     private SuggestionFeed mFeed;
     public static final String INITIALIZE_ACTION = "com.cmplxen.instead.intent.action.INITIALIZE_ACTION";
@@ -44,18 +66,27 @@ public class SuggestionService extends Service {
 
     @Override
     public void onStart(Intent intent, int startId) {
+        /*
+        This method handles intents for the service, including intents to start the service (enable
+        suggestions) and update the suggestion feed based on which suggestions have been
+        seen.
+         */
         String action = intent.getAction();
 
+        // If the service is created without any params, log it (this is probably a mistake).
         if (action == null) {
-            Log.d("SuggestionService::onStart", "(null)");
+            Log.w("SuggestionService::onStart", "(null)");
         }
         Log.d("SuggestionService::onStart", action);
 
+        // Branch on the intent action
         if (action == INITIALIZE_ACTION){
+            // This is passed when the service is created: enable suggestions
 
             Log.d("SuggestionService", "started");
 
-            // Create feed of suggestions
+            // Create the feed of suggestions. It will take care of loading any saved user
+            // data into itself.
             try {
                 mFeed = new SuggestionFeed(this);
             } catch (XmlPullParserException e) {
@@ -63,19 +94,16 @@ public class SuggestionService extends Service {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            // Create a BroadcastReceiver to handle displaying messages to the lock screen
-            // and fill up its message queue
+
+            // Create a BroadcastReceiver to handle displaying messages to the lock screen;
+            // pass it the suggestion feed to pull messages from
             mLockScreenReceiver = new LockScreenReceiver(this, mFeed);
             mLockScreenReceiver.register();
 
         } else if (action == SuggestionService.SUGGESTION_SEEN_ACTION) {
-            // TODO:
-            //    - add support for serializing/de-serializing 'seen' count
-            //    - move on: add more lists and attach to location update events
-            //        - Location change:Do a places search and cache the result; factor into next suggestion
-            //
+            // This is passed from the screen lock broadcast receiver when the user
+            // sees a message; update the queue
 
-            // TODO: ASSERT(mFeed and ScreenLockRecevier exist)
             mFeed.handleSeen(intent);
         }
 
@@ -86,6 +114,7 @@ public class SuggestionService extends Service {
         Log.d("suggestion_service", "destroyed");
         mLockScreenReceiver.unregister();
         mLockScreenReceiver = null;
+        mFeed = null;
     }
 }
 

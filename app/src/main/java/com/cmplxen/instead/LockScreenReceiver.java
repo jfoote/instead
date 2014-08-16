@@ -115,7 +115,7 @@ class SuggestionView extends View {
                 PixelFormat.TRANSLUCENT);
 
         mParams.gravity = Gravity.CENTER;
-        mParams.setTitle("Window test");
+        mParams.setTitle("Instead");
         isHidden = true;
 
         mWindowManager = (WindowManager)context.getSystemService(context.WINDOW_SERVICE);

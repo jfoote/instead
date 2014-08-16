@@ -16,9 +16,19 @@ import java.util.HashMap;
 import java.util.concurrent.PriorityBlockingQueue;
 
 /**
- * Created by user0 on 8/15/14.
+ * This file contains the feed of suggestions.
  */
 public class SuggestionFeed {
+    /*
+    The feed of suggestions that are displayed to the user. The feed is created by the suggestion
+    service. Both the service and the the Lock Screen broadcast receiver hold references to it.
+    The Lock Screen broadcast receiver reads suggestions from the feed. The suggestion service
+    updates the feed based on defaults, system events such as the user seeing an suggestion, and
+    so on.
+    The core of the feed is a priority queue that ranks messages based on a score. See the
+    Suggestion object for how the score is calculated.
+     */
+    
     private PriorityBlockingQueue<Suggestion> mQueue = null;
     private String mMessage = sDefaultMessage;
     private static final String sDefaultMessage = "Temporarily out of ideas -- meditate!";
@@ -94,7 +104,7 @@ public class SuggestionFeed {
 
     public void notifySeen(Suggestion suggestion) {
         // called from broadcastrecevier, so we have to pass this off
-        // send 'suggestion seen intent' back to service so it can update the state
+        // send 'suggestion seen intent' back to service so it can update the state2
         Context context = mService.getApplicationContext();
         Intent seenIntent = new Intent(context, SuggestionService.class);
         seenIntent.setAction(SuggestionService.SUGGESTION_SEEN_ACTION);
