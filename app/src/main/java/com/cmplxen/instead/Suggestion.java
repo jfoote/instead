@@ -40,7 +40,7 @@ public class Suggestion {
     }
 
     private String getSeenKey() {
-        return mCategory + "\t" + mMessage;
+        return mCategory.mName + "\t" + mMessage;
     }
 
     public void saveSeen(SharedPreferences prefs) {
