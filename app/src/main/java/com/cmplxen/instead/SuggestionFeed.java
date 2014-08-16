@@ -3,6 +3,7 @@ package com.cmplxen.instead;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.res.XmlResourceParser;
 import android.util.Log;
 
@@ -24,6 +25,7 @@ public class SuggestionFeed {
     private SuggestionCategories mSuggestionCategories;
     private Service mService;
     private SuggestionCategory mCurrentCategory;
+    private static final String sSuggestionPreferencesName = "com.cmplxen.instead.user.suggestions.state";
 
     public SuggestionFeed(Service service) throws XmlPullParserException, IOException {
         mService = service;
@@ -31,11 +33,17 @@ public class SuggestionFeed {
 
         XmlResourceParser xpp = mService.getResources().getXml(R.xml.suggestions);
         mSuggestionCategories =  new SuggestionCategories(xpp);
+        xpp.close();
+
+        SharedPreferences prefs = service.getSharedPreferences(sSuggestionPreferencesName,
+                Context.MODE_PRIVATE);
 
         mQueue = new PriorityBlockingQueue<Suggestion>(8, new SuggestionComparator());
         for (SuggestionCategory c: mSuggestionCategories) {
             for (Suggestion s: c) {
-                Log.d("SuggestionFeed::SuggestionFeed", "adding " + c.mName + ":" + s.mMessage);
+                s.loadSeen(prefs);
+                Log.d("SuggestionFeed::SuggestionFeed", "adding " + c.mName + ":" + s.mMessage +
+                ":" + s.mSeenCount);
                 s.prioritize(c);
                 mQueue.add(s);
             }
@@ -71,9 +79,15 @@ public class SuggestionFeed {
             return;
         }
 
-        s.mSeenCount++;
-        s.prioritize(this.mCurrentCategory);
-        Log.d("handleSeen", message + " p:" + s.mPriority);
+        if (!s.isDefault()) {
+            s.mSeenCount++;
+            s.prioritize(this.mCurrentCategory);
+            Log.d("handleSeen", message + " p:" + s.mPriority);
+            s.saveSeen(mService.getSharedPreferences(sSuggestionPreferencesName,
+                    Context.MODE_PRIVATE));
+        } else {
+            Log.w("SuggestionFeed::handleSeen", "Default suggestion was seen");
+        }
 
         this.mQueue.add(s);
     }

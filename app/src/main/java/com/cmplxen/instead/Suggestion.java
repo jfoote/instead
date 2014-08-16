@@ -1,5 +1,6 @@
 package com.cmplxen.instead;
 
+import android.content.SharedPreferences;
 import android.content.res.XmlResourceParser;
 import android.util.Log;
 
@@ -38,7 +39,19 @@ public class Suggestion {
         }
     }
 
+    private String getSeenKey() {
+        return mCategory + "\t" + mMessage;
+    }
 
+    public void saveSeen(SharedPreferences prefs) {
+        Log.d("Suggestion::saveSeen", getSeenKey() + ":" + mSeenCount);
+        prefs.edit().putInt(getSeenKey(), mSeenCount).apply();
+    }
+
+    public void loadSeen(SharedPreferences prefs) {
+        mSeenCount = prefs.getInt(getSeenKey(), 0);
+        Log.d("Suggestion::loadSeen", getSeenKey() + ":" + mSeenCount);
+    }
 
     public Suggestion(XmlResourceParser xpp, SuggestionCategory category) throws IOException, XmlPullParserException {
         // TODO: make this an assert } else if (eventType == XmlResourceParser.START_TAG && tagName == "suggestion") {
@@ -59,7 +72,7 @@ public class Suggestion {
                 mMessage = xpp.nextText();
             } else if (eventType == XmlResourceParser.START_TAG && tagName.contentEquals("goodness")) {
                 // ASSERT(mGoodness == -1);
-                mGoodness = new Integer(xpp.nextText()); // TODO: make sure this is right!
+                mGoodness = Integer.valueOf(xpp.nextText()); // TODO: make sure this is right!
             }
         }
     }
@@ -92,7 +105,7 @@ class SuggestionCategory extends ArrayList<Suggestion> {
         // PRE: xpp is pointing at a START_TAG named FOO
         // ASSERT(eventType == XmlResourceParser.START_TAG && tagName == "suggestion-list")
 
-        mName = xpp.getName();
+        mName = xpp.getAttributeValue(null, "name");
 
         String tagName = null;
         int eventType = 0;
