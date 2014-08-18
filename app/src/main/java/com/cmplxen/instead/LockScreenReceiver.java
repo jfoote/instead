@@ -1,3 +1,7 @@
+/*
+This file contains the Broadcast Receiver that manages the lock screen and supporting functionality.
+*/
+
 package com.cmplxen.instead;
 
 import android.content.BroadcastReceiver;
@@ -13,23 +17,32 @@ import android.view.View;
 import android.view.WindowManager;
 
 public class LockScreenReceiver extends BroadcastReceiver {
-    private SuggestionView mSuggestionView;
-    private SuggestionService mSuggestionService;
-    private SuggestionFeed mFeed;
-
+    /*
+    A Broadcast Receiver that handles lockscreen-related system intents.
+    This Broadcast receiver reads suggestions from the suggestion service via a threadsafe
+    priority queue and sends data regarding seen messages back to the suggestion service via
+    intents.
+     */
+    private SuggestionView mSuggestionView; // view that displays the suggestion
+    private SuggestionService mSuggestionService; // suggestion service
+    private SuggestionFeed mFeed; // feed of suggestions
 
     public LockScreenReceiver(SuggestionService service, SuggestionFeed feed) {
+        // store feed for reading suggestions to show to lock screen, and feed itself
         mSuggestionService = service;
         mFeed = feed;
     }
 
-    // For orthogonality: GC means I can't count on destructor being call synchronously (i.e.
-    // responsively when user disables Instead), so I have to call register/unregister
-    // explicitly from Service.
     public void register() {
-        // Create a view and params(displays the suggestion)
+        /*
+        Registers this receiver to receive various types of intents: whether the lock screen has
+        been enabled, whether the user has disabled the lock screen, and so on.
+         */
+
+        // Create a view to display the suggestion on the lock screen
         mSuggestionView = new SuggestionView(mSuggestionService);
 
+        // Register for lock-screen-related intents
         IntentFilter filter = new IntentFilter();
         filter.addAction("android.intent.action.USER_PRESENT");
         filter.addAction("android.intent.action.SCREEN_OFF");
@@ -38,6 +51,9 @@ public class LockScreenReceiver extends BroadcastReceiver {
     }
 
     public void unregister() {
+        /*
+        Deregisters this receiver. Generally called by the service when it is exiting.
+         */
         mSuggestionService.unregisterReceiver(this);
         mSuggestionView = null;
     }
@@ -46,26 +62,39 @@ public class LockScreenReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
+        /*
+        Displays or hides the suggestion based on the intent action. Called by the system
+        thread.
+         */
+
         String action = intent.getAction();
         Log.d("LockScreenReceiver", action);
-
         if (action.equals(Intent.ACTION_USER_PRESENT) && mDisplayedSuggestion != null) {
+
+            // Hide the suggestion view and update stats for the suggestion (by sending an intent
+            // to the suggestion service thread, which calls a related suggestion feed method)
             mSuggestionView.hide();
             mFeed.notifySeen(mDisplayedSuggestion);
 
-        //} else if (action.equals(Intent.ACTION_SCREEN_ON)) { //TODO: handle click-on/click-off
-        // ACTION_SCREEN_OFF is more responsive (if it always works)
-        } else if (action.equals(Intent.ACTION_SCREEN_OFF)) { // assuming this is the only way screen gets locked
-            // ASSERT(mFeed returns something)
+        } else if (action.equals(Intent.ACTION_SCREEN_OFF)) {
+
+            // Pop a suggestion from the suggestion feed and display it
             mDisplayedSuggestion = mFeed.pop();
             mSuggestionView.show(mDisplayedSuggestion.mMessage);
             Log.d("LockScreenReceiver::onReceive", mDisplayedSuggestion.mMessage + "p:" + mDisplayedSuggestion.mPriority);
-        } // else if (action.equals(ACTION_UPDATE_SUGGESTION ) {
+        }
+        // TODO: handle click-on/click-off
+        // TODO: handle updating the suggestion when the screen is off (for background location updates, etc.)
+        // TODO: handle any other methods for locking the screen (if any exist)
 
     }
 }
 
 class SuggestionView extends View {
+    /*
+    This is the view that displays the suggestion on the lock screen. It is used by the
+    lock screen broadcast receiver.
+     */
 
     private Paint mPaint;
 
