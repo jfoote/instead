@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.concurrent.PriorityBlockingQueue;
 
 /**
@@ -39,13 +40,16 @@ public class SuggestionFeed {
     private SuggestionCategories mSuggestionCategories; // all suggestions by category
     private Service mService; // reference to the suggestion service
     private SuggestionCategory mCurrentCategory; // the current category of suggestions
+    private SuggestionCategory mGeneralCategory; // general category suggestions
     private static final String sSuggestionPreferencesName = "com.cmplxen.instead.user.suggestions.state";
+    private static final String sGeneralCategoryName = "general";
 
     public SuggestionFeed(Service service) throws XmlPullParserException, IOException {
         /*
         Initializes the queue; needs a reference to the suggestion service to load resources, save
         feed state, etc.
          */
+
         mService = service;
 
         // Load the suggestions into memory from app resources
@@ -53,20 +57,57 @@ public class SuggestionFeed {
         mSuggestionCategories =  new SuggestionCategories(xpp);
         xpp.close();
 
-        // Load the suggestions into the priority queue, factoring in any available
-        // serialized user data (how many times a suggestion has been seen) along the way
-        SharedPreferences prefs = service.getSharedPreferences(sSuggestionPreferencesName,
-                Context.MODE_PRIVATE);
+        // Get references to relevant categories
+        mGeneralCategory = mSuggestionCategories.FindCategory(sGeneralCategoryName);
+        mCurrentCategory = mGeneralCategory; // TODO: check location
+
+
+        // Load user data for all suggestions; put 'general' and any category-specific suggestions
+        // in the queue.
         mQueue = new PriorityBlockingQueue<Suggestion>(8, new SuggestionComparator());
-        for (SuggestionCategory c: mSuggestionCategories) {
-            for (Suggestion s: c) {
-                s.loadSeen(prefs);
-                Log.d("SuggestionFeed::SuggestionFeed", "adding " + c.mName + ":" + s.mMessage +
-                ":" + s.mSeenCount);
-                s.prioritize(c);
-                mQueue.add(s);
+        setCategory(sGeneralCategoryName);
+    }
+
+    public void setCategory(String newCategory) {
+
+        SuggestionCategory previousCategory = mSuggestionCategories.FindCategory(mCurrentCategory.mName);
+        mCurrentCategory = mSuggestionCategories.FindCategory(newCategory);
+        SharedPreferences prefs = mService.getSharedPreferences(sSuggestionPreferencesName,
+                Context.MODE_PRIVATE);
+
+        Iterator<Suggestion> iterator = mQueue.iterator();
+        Suggestion suggestion;
+
+        // Remove suggestions from previous category; update priorities for others (as category
+        // as changed)
+        while(iterator.hasNext()) {
+            suggestion = iterator.next();
+
+            // Note that general category items will never be removed by this loop
+            if (suggestion.mCategory == mGeneralCategory) {
+                suggestion.prioritize(mCurrentCategory);
+            } else if (suggestion.mCategory == previousCategory) {
+                mQueue.remove(suggestion);
+            } else {
+                Log.e("SuggestionFeed::setCategory", "Unexpected category found in queue:" +
+                        suggestion.mCategory);
+                // TODO: if we ever have multiple categories, need to update priorities here.
+                // otherwise should raise an exception probably
             }
         }
+
+        // Load the suggestions for the new category into the priority queue, factoring in any
+        // available serialized user data (how many times a suggestion has been seen) along the way
+        for (Suggestion s: mCurrentCategory) {
+
+            s.loadSeen(prefs);
+            s.prioritize(mCurrentCategory);
+            mQueue.add(s);
+
+            Log.d("SuggestionFeed::SuggestionFeed", "loaded " + mCurrentCategory.mName + ":" +
+                    s.mMessage + ":" + s.mSeenCount);
+        }
+
     }
 
     public Suggestion pop() {
@@ -76,6 +117,15 @@ public class SuggestionFeed {
         this implementation must be thread safe (though not necessarily re-entrant).
          */
         Suggestion s = mQueue.poll();
+
+        // TODO: remove this debug code
+        Object[] suggestions = mQueue.toArray();
+        Suggestion t;
+        for (Object o: suggestions) {
+            t = (Suggestion)o;
+            Log.d("Suggestion::pop", t.mMessage + "," + t.mSeenCount + "," + t.mPriority);
+        }
+
         if (s == null) {
             Log.d("SuggestionFeed", "queue is out of messages");
             s = new Suggestion();

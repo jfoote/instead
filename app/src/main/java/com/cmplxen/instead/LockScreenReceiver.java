@@ -75,15 +75,26 @@ public class LockScreenReceiver extends BroadcastReceiver {
             // to the suggestion service thread, which calls a related suggestion feed method)
             mSuggestionView.hide();
             mFeed.notifySeen(mDisplayedSuggestion);
+            mDisplayedSuggestion = null;
 
         } else if (action.equals(Intent.ACTION_SCREEN_OFF)) {
+
+            // If the there is still a suggestion on the screen (like when the user clicks-on
+            // and then clicks-off right away) clear it
+            if (mDisplayedSuggestion != null) {
+
+                // Hide the suggestion view and update stats for the suggestion (by sending an intent
+                // to the suggestion service thread, which calls a related suggestion feed method)
+                mSuggestionView.hide();
+                mFeed.notifySeen(mDisplayedSuggestion);
+                mDisplayedSuggestion = null;
+            }
 
             // Pop a suggestion from the suggestion feed and display it
             mDisplayedSuggestion = mFeed.pop();
             mSuggestionView.show(mDisplayedSuggestion.mMessage);
             Log.d("LockScreenReceiver::onReceive", mDisplayedSuggestion.mMessage + "p:" + mDisplayedSuggestion.mPriority);
         }
-        // TODO: handle click-on/click-off
         // TODO: handle updating the suggestion when the screen is off (for background location updates, etc.)
         // TODO: handle any other methods for locking the screen (if any exist)
 

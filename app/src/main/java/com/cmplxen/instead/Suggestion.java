@@ -31,11 +31,17 @@ public class Suggestion {
     }
 
     public void prioritize(SuggestionCategory currentCategory) {
-        // heuristic: seen >> location-aware > goodness_rank
-        //    score = seen * 100 + location-aware * 50 + goodness
-        mPriority = this.mSeenCount * 100 + this.mGoodness;
-        if (currentCategory == this.mCategory) {
-            mPriority += 50;
+        // heuristic: not-seen >> location-aware > goodness_rank
+        // priority: lower is better
+        //    score = seen * 100 - location-aware * 50 - goodness
+
+        // if currentCategory == this.Category BONUS
+        // elseif this.Category == 'general' OK
+        // else NO WAY DON"T SHOW IT!
+        mPriority = this.mSeenCount * 100 - this.mGoodness;
+        if (currentCategory.mName.contentEquals(this.mCategory.mName)) { // TODO: put this in a Comparator
+            Log.d("MATCH!!", "MATCH!!");
+            mPriority -= 50;
         }
     }
 
@@ -81,14 +87,9 @@ public class Suggestion {
 class SuggestionComparator implements Comparator<Suggestion> {
     // TODO: figure out how to encapsulate this properly
     public int compare(Suggestion x, Suggestion y) {
+        // pos if x is greater than y
         // higher priority is better
-        if (x.mPriority < y.mPriority) {
-            return -1;
-        }
-        if (x.mPriority > y.mPriority) {
-            return 1;
-        }
-        return 0;
+        return x.mPriority - y.mPriority;
     }
 }
 

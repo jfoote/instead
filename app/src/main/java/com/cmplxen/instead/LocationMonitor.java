@@ -97,7 +97,6 @@ public class LocationMonitor implements
 
                     default:
                         Log.w("LocationMonitor::onActivityResult", "Connection issue NOT resolved");
-
                         break;
                 }
 
