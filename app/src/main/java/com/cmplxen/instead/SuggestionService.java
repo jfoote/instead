@@ -14,6 +14,7 @@ import android.graphics.Canvas;
 import android.graphics.PixelFormat;
 import android.view.Gravity;
 import android.content.Context;
+import android.widget.Toast;
 
 import org.xmlpull.v1.XmlPullParserException;
 
@@ -52,9 +53,14 @@ public class SuggestionService extends Service {
     private SuggestionFeed mFeed;
     private LocationMonitor mLocationMonitor;
     public static final String INITIALIZE_ACTION = "com.cmplxen.instead.intent.action.INITIALIZE_ACTION";
+
     public static final String SUGGESTION_SEEN_ACTION = "com.cmplxen.instead.intent.action.SUGGESTION_SEEN_ACTION";
     public static final String SUGGESTION_SEEN_MESSAGE = "com.cmplxen.instead.intent.action.SUGGESTION_SEEN_MESSAGE";
     public static final String SUGGESTION_SEEN_CATEGORY = "com.cmplxen.instead.intent.action.SUGGESTION_SEEN_CATEGORY";
+
+    public static final String LOCATION_CHANGE_ACTION = "com.cmplxen.instead.intent.action.LOCATION_CHANGE_ACTION";
+    public static final String LOCATION_CHANGE_LATITUDE = "com.cmplxen.instead.intent.action.LOCATION_CHANGE_LATITUDE";
+    public static final String LOCATION_CHANGE_LONGITUDE = "com.cmplxen.instead.intent.action.LOCATION_CHANGE_LONGITUDE";
 
     public SuggestionService() {
     }
@@ -110,6 +116,11 @@ public class SuggestionService extends Service {
             // sees a message; update the queue
 
             mFeed.handleSeen(intent);
+        } else if (action == SuggestionService.LOCATION_CHANGE_ACTION) {
+            double locLat = intent.getDoubleExtra(SuggestionService.LOCATION_CHANGE_LATITUDE, 0);
+            double locLong = intent.getDoubleExtra(SuggestionService.LOCATION_CHANGE_LONGITUDE, 0);
+            Toast.makeText(getApplicationContext(), "Service:lat=" + locLat + ",long=" + locLong, Toast.LENGTH_SHORT).show();
+
         }
 
     }

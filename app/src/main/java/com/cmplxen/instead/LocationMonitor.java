@@ -2,6 +2,7 @@ package com.cmplxen.instead;
 
 import android.app.Activity;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.content.IntentSender;
 import android.location.Location;
@@ -174,7 +175,14 @@ public class LocationMonitor implements
         Log.d("LocationManager::onLocationChanged", "lat=" + location.getLatitude() + ",long=" +
             location.getLongitude());
 
-        Toast.makeText(mSuggestionService.getApplicationContext(), "lat=" + location.getLatitude() + ",long=", Toast.LENGTH_SHORT).show();
-        // TODO: pass this back to the service thread for use in updating the feed
+        Toast.makeText(mSuggestionService.getApplicationContext(), "LocMgr:lat=" + location.getLatitude() + ",long=" + location.getLongitude(), Toast.LENGTH_SHORT).show();
+
+        Context context = mSuggestionService.getApplicationContext();
+        Intent seenIntent = new Intent(context, SuggestionService.class);
+        seenIntent.setAction(SuggestionService.LOCATION_CHANGE_ACTION);
+        seenIntent.putExtra(SuggestionService.LOCATION_CHANGE_LATITUDE, location.getLatitude());
+        seenIntent.putExtra(SuggestionService.LOCATION_CHANGE_LONGITUDE, location.getLongitude());
+        context.startService(seenIntent);
+
     }
 }
