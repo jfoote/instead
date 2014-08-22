@@ -26,6 +26,10 @@
             android:enabled="true"
             android:exported="false" >
         </service>
+        <service
+            android:name=".NetworkService"
+            android:exported="false" >
+        </service>
     </application>
 
     <!--
@@ -34,9 +38,11 @@
         - WRITE_SETTINGS is used to allow writing to the lock screen
         - SYSTEM_ALERT_WINDOW is used to (try to) create a pop-up window
               from the Suggestion Service
+        - INTERNET is used to query the Google Places API
     -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.WRITE_SETTINGS" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.INTERNET" />
 
 </manifest>

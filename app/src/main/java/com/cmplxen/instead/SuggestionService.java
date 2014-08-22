@@ -16,9 +16,21 @@ import android.view.Gravity;
 import android.content.Context;
 import android.widget.Toast;
 
+import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.message.BasicNameValuePair;
 import org.xmlpull.v1.XmlPullParserException;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.List;
 
 /*
 This file contains the core component of the application -- the suggestion service .
@@ -59,8 +71,7 @@ public class SuggestionService extends Service {
     public static final String SUGGESTION_SEEN_CATEGORY = "com.cmplxen.instead.intent.action.SUGGESTION_SEEN_CATEGORY";
 
     public static final String LOCATION_CHANGE_ACTION = "com.cmplxen.instead.intent.action.LOCATION_CHANGE_ACTION";
-    public static final String LOCATION_CHANGE_LATITUDE = "com.cmplxen.instead.intent.action.LOCATION_CHANGE_LATITUDE";
-    public static final String LOCATION_CHANGE_LONGITUDE = "com.cmplxen.instead.intent.action.LOCATION_CHANGE_LONGITUDE";
+    public static final String LOCATION_CHANGE_PLACE = "com.cmplxen.instead.intent.action.LOCATION_CHANGE_PLACE";
 
     public SuggestionService() {
     }
@@ -85,6 +96,7 @@ public class SuggestionService extends Service {
             Log.w("SuggestionService::onStart", "(null)");
         }
         Log.d("SuggestionService::onStart", action);
+        Toast.makeText(getApplicationContext(), "SugSvc::action=" + action, Toast.LENGTH_SHORT).show();
 
         // Branch on the intent action
         if (action == INITIALIZE_ACTION){
@@ -117,9 +129,9 @@ public class SuggestionService extends Service {
 
             mFeed.handleSeen(intent);
         } else if (action == SuggestionService.LOCATION_CHANGE_ACTION) {
-            double locLat = intent.getDoubleExtra(SuggestionService.LOCATION_CHANGE_LATITUDE, 0);
-            double locLong = intent.getDoubleExtra(SuggestionService.LOCATION_CHANGE_LONGITUDE, 0);
-            Toast.makeText(getApplicationContext(), "Service:lat=" + locLat + ",long=" + locLong, Toast.LENGTH_SHORT).show();
+            String place = intent.getStringExtra(SuggestionService.LOCATION_CHANGE_PLACE);
+            Toast.makeText(getApplicationContext(), "SugSvc:place=" + place, Toast.LENGTH_LONG).show();
+
 
         }
 
@@ -133,6 +145,9 @@ public class SuggestionService extends Service {
         mLockScreenReceiver = null;
         mFeed = null;
     }
+
+
+
 }
 
 

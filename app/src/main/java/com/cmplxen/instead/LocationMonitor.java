@@ -178,11 +178,10 @@ public class LocationMonitor implements
         Toast.makeText(mSuggestionService.getApplicationContext(), "LocMgr:lat=" + location.getLatitude() + ",long=" + location.getLongitude(), Toast.LENGTH_SHORT).show();
 
         Context context = mSuggestionService.getApplicationContext();
-        Intent seenIntent = new Intent(context, SuggestionService.class);
-        seenIntent.setAction(SuggestionService.LOCATION_CHANGE_ACTION);
-        seenIntent.putExtra(SuggestionService.LOCATION_CHANGE_LATITUDE, location.getLatitude());
-        seenIntent.putExtra(SuggestionService.LOCATION_CHANGE_LONGITUDE, location.getLongitude());
+        Intent seenIntent = new Intent(context, NetworkService.class);
+        seenIntent.setAction(NetworkService.GET_PLACES_ACTION);
+        seenIntent.putExtra(NetworkService.GET_PLACES_LATITUDE, location.getLatitude());
+        seenIntent.putExtra(NetworkService.GET_PLACES_LONGITUDE, location.getLongitude());
         context.startService(seenIntent);
-
     }
 }
