@@ -17,6 +17,9 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.net.URI;
@@ -64,9 +67,11 @@ public class NetworkService extends IntentService {
 
     private String getPlace(double locLat, double locLong) {
         HttpResponse response = null;
-        String result = "";
+        String placeName = "";
+        String result;
         try {
             /*
+            TODO: see if i can do this via post so my API key isn't exposed via wifi, etc.
             HttpClient client = new DefaultHttpClient();
             HttpPost request = new HttpPost(new URI("https://maps.googleapis.com/maps/api/place/nearbysearch/json"));
             // See https://developers.google.com/places/documentation/search
@@ -85,6 +90,7 @@ public class NetworkService extends IntentService {
             builder.appendQueryParameter("key", "AIzaSyBuWXfg4Np1TAT5D_MyFdNA6v_JRLwhe1k");
             builder.appendQueryParameter("location", String.valueOf(locLat) + "," + String.valueOf(locLong));
             builder.appendQueryParameter("radius", "50");
+            // TODO: make sure 50m is OK, and move strings to resources
 
             HttpClient client = new DefaultHttpClient();
             HttpGet request = new HttpGet(builder.toString());
@@ -94,7 +100,13 @@ public class NetworkService extends IntentService {
             //request.setURI(new URI("https://maps.googleapis.com/maps/api/place/nearbysearch/json?parameters"));
             response = client.execute(request);
             result = EntityUtils.toString(response.getEntity());
+            Log.d("NetworkService::getPlace", result);
             //result = builder.toString();
+
+            JSONObject obj = new JSONObject(result);
+            placeName = obj.getJSONArray("results").getJSONObject(0).getString("name");
+            // TODO: make sure the first place is the best match
+            // TODO: put this parser in standalone method for test, or somehow test this whole method
 
             Log.d("SuggestionService::getPlace", response.toString());
         } catch (ClientProtocolException e) {
@@ -103,7 +115,9 @@ public class NetworkService extends IntentService {
         } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
+        } catch (JSONException e) {
+            e.printStackTrace();
         }
-        return result;
+        return placeName;
     }
 }

@@ -36,10 +36,16 @@ import java.util.List;
 This file contains the core component of the application -- the suggestion service .
  */
 
+// very roughly implemented place lookup -- need to parse json and display it somehow
 // TODO:
-//    - move on: add more lists and attach to location update events
-//        - Location change:Do a places search and cache the result; factor into next suggestion
-//
+//    - parse Places json
+//        - coded, need to test
+//    - add more suggestions
+//    - make display pretty
+//        - made font bigger; need to make a widget as well
+//    - test; re-design for test (and knowledge of threats)
+//    - make location api usage more periodic so as not to suck down the battery
+
 
 public class SuggestionService extends Service {
     /*

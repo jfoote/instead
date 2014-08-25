@@ -51,7 +51,8 @@ public class LocationMonitor implements
 
         // Create a location API request to sign up for location updates
         mLocationRequest = LocationRequest.create();
-        mLocationRequest.setInterval(5 * 1000); //TODO: * 5); // 5 minutes
+        //mLocationRequest.setInterval(5 * 1000); //TODO: * 5); // 5 minutes
+        mLocationRequest.setInterval(5 * 1000 * 5); // 5 minutes
         mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
         mLocationRequest.setFastestInterval(5 * 1000); // TODO: 1 minute
 
@@ -75,12 +76,12 @@ public class LocationMonitor implements
     }
 
     /*
- * Handle results returned to this Activity by other Activities started with
- * startActivityForResult(). In particular, the method onConnectionFailed() in
- * LocationUpdateRemover and LocationUpdateRequester may call startResolutionForResult() to
- * start an Activity that handles Google Play services problems. The result of this
- * call returns here, to onActivityResult.
- */
+     * Handle results returned to this Activity by other Activities started with
+     * startActivityForResult(). In particular, the method onConnectionFailed() in
+     * LocationUpdateRemover and LocationUpdateRequester may call startResolutionForResult() to
+     * start an Activity that handles Google Play services problems. The result of this
+     * call returns here, to onActivityResult.
+     */
 
     protected void onActivityResult(int requestCode, int resultCode, Intent intent) {
 
@@ -148,10 +149,10 @@ public class LocationMonitor implements
     }
 
     /*
- * Called by Location Services when the request to connect the
- * client finishes successfully. At this point, you can
- * request the current location or start periodic updates
- */
+     * Called by Location Services when the request to connect the
+     * client finishes successfully. At this point, you can
+     * request the current location or start periodic updates
+     */
     @Override
     public void onConnected(Bundle bundle) {
         Log.d("LocationManager::onConnected", "connected");

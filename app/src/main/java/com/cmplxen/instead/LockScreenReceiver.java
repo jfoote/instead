@@ -15,6 +15,7 @@ import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.TextView;
 
 public class LockScreenReceiver extends BroadcastReceiver {
     /*
@@ -101,7 +102,7 @@ public class LockScreenReceiver extends BroadcastReceiver {
     }
 }
 
-class SuggestionView extends View {
+class SuggestionView extends TextView {
     /*
     This is the view that displays the suggestion on the lock screen. It is used by the
     lock screen broadcast receiver.
@@ -143,7 +144,7 @@ class SuggestionView extends View {
     public SuggestionView(Context context) {
         super(context);
         mPaint = new Paint();
-        mPaint.setTextSize(50);
+        mPaint.setTextSize(100);
         mPaint.setARGB(200, 200, 200, 200);
 
         mParams = new WindowManager.LayoutParams(
