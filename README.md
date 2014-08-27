@@ -2,7 +2,7 @@
 
 ## Functional Design Notes
 
-The primary entry point to the system is the SettingsActivity (SettingsActivity.java). When the user enables suggestions, an instance of SuggestionService (SuggestionService.java) is created. SuggestionService orchestrates communication and resource allocation for the application, including creating and adjusting the SuggestionFeed (SuggestionFeed.java). 
+The primary entry point to the system is the SettingsActivity (SettingsActivity.java). When the user enables suggestions, an instance of SuggestionService (SuggestionService.java) is created. SuggestionService orchestrates communication and resource allocation for the application, including creating and adjusting the SuggestionFeed (SuggestionFeed.java), which is the actual feed of suggestions that is shown to the user when they wake their device.
 
 When the service is instantiated, it in turn creates an instance of LockScreenReceiver (LockScreenReceiver.java), which handles system events to show/hide suggestions on the lock screen and send Intents back to the SuggestionService to notify it when the user has seen a suggestion it has pulled from the SuggestionFeed.
 
