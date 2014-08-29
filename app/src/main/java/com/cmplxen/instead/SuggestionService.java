@@ -38,13 +38,13 @@ This file contains the core component of the application -- the suggestion servi
 
 // very roughly implemented place lookup -- need to parse json and display it somehow
 // TODO:
-//    - parse Places json
-//        - coded, need to test
+//    - re-work design so that NetworkService is not an IntentService
+//        - probably best to re-work location to use less power/poll as a starting point
+//    - match Places types to suggestion categories
 //    - add more suggestions
 //    - make display pretty
 //        - made font bigger; need to make a widget as well
 //    - test; re-design for test (and knowledge of threats)
-//    - make location api usage more periodic so as not to suck down the battery
 
 
 public class SuggestionService extends Service {

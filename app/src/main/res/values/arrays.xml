@@ -1,10 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string-array name="default_suggestions">
-        <item>One, two</item>
-        <item>Tie your shoes</item>
-        <item>Three, four</item>
-    </string-array>
     <string-array name="google_places_types">
         <item>accounting</item>
         <item>airport</item>
