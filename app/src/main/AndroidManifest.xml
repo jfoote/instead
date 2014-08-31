@@ -30,7 +30,17 @@
             android:name=".NetworkService"
             android:exported="false" >
         </service>
+        <service android:name=".LocationUpdateService"
+            android:exported="true"
+            android:enabled="true" >
+        </service>
     </application>
+
+    <!--
+     <receiver android:process=":remote" android:name="Alarm"/> TODO: needed?
+     see http://stackoverflow.com/questions/4459058/alarm-manager-example
+    -->
+
 
     <!--
         - ACCESS_FINE_LOCATION is used to tailor suggestions to the user's
@@ -39,10 +49,12 @@
         - SYSTEM_ALERT_WINDOW is used to (try to) create a pop-up window
               from the Suggestion Service
         - INTERNET is used to query the Google Places API
+        - WAKE_LOCK is used to wake up the device periodically to check location
     -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.WRITE_SETTINGS" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
 </manifest>

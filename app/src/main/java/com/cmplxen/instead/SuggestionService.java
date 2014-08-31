@@ -69,7 +69,6 @@ public class SuggestionService extends Service {
 
     private LockScreenReceiver mLockScreenReceiver;
     private SuggestionFeed mFeed;
-    private LocationMonitor mLocationMonitor;
     public static final String INITIALIZE_ACTION = "com.cmplxen.instead.intent.action.INITIALIZE_ACTION";
 
     public static final String SUGGESTION_SEEN_ACTION = "com.cmplxen.instead.intent.action.SUGGESTION_SEEN_ACTION";
@@ -126,8 +125,7 @@ public class SuggestionService extends Service {
             mLockScreenReceiver.register();
 
             // TODO: break this out into a separate option
-            mLocationMonitor = new LocationMonitor(this);
-            mLocationMonitor.start(); // TODO: handle return value or switch to try/catch
+            LocationMonitor.start(getApplicationContext()); // TODO: handle return value or switch to try/catch
 
         } else if (action == SuggestionService.SUGGESTION_SEEN_ACTION) {
             // This is passed from the screen lock broadcast receiver when the user
@@ -147,13 +145,10 @@ public class SuggestionService extends Service {
     public void onDestroy() {
         Log.d("suggestion_service", "destroyed");
         mLockScreenReceiver.unregister();
-        mLocationMonitor.stop();
+        LocationMonitor.stop(getApplicationContext());
         mLockScreenReceiver = null;
         mFeed = null;
     }
-
-
-
 }
 
 
