@@ -30,10 +30,16 @@
             android:name=".NetworkService"
             android:exported="false" >
         </service>
-        <service android:name=".LocationUpdateService"
-            android:exported="true"
-            android:enabled="true" >
+        <service
+            android:name=".LocationUpdateService"
+            android:enabled="true"
+            android:exported="true" >
         </service>
+        <receiver
+            android:name=".LocationAlarmReceiver"
+            android:enabled="true"
+            android:exported="false" >
+        </receiver>
     </application>
 
     <!--

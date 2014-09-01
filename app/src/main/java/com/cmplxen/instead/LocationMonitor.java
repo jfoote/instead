@@ -44,7 +44,7 @@ public class LocationMonitor  {
         AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         Intent i = new Intent(context, LocationAlarmReceiver.class);
         PendingIntent pi = PendingIntent.getBroadcast(context, 0, i, 0);
-        am.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), 1000 * 10 * 1, pi); // Millisec * Second * Minute
+        am.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), 1000 * 60 * 2, pi); // Millisec * Second * Minute
         Log.d("LocationMonitor", "AlarmManager.setRepeating called");
 
         return true;
@@ -58,20 +58,4 @@ public class LocationMonitor  {
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         alarmManager.cancel(sender);
     }
-
-
-}
-
-class LocationAlarmReceiver extends WakefulBroadcastReceiver {
-    @Override
-    public void onReceive(Context context, Intent intent) {
-        // Put here YOUR code.
-        Log.d("LaRcvr", "Intent received");
-        Toast.makeText(context, "Alarm !!!!!!!!!!", Toast.LENGTH_LONG).show(); // For example
-
-        Intent getLocationIntent = new Intent(context, LocationUpdateService.class);
-        getLocationIntent.setAction(LocationUpdateService.GET_LOCATION);
-        startWakefulService(context, getLocationIntent);
-    }
-
 }

@@ -135,10 +135,7 @@ public class SuggestionService extends Service {
         } else if (action == SuggestionService.LOCATION_CHANGE_ACTION) {
             String place = intent.getStringExtra(SuggestionService.LOCATION_CHANGE_PLACE);
             Toast.makeText(getApplicationContext(), "SugSvc:place=" + place, Toast.LENGTH_LONG).show();
-
-
         }
-
     }
 
     @Override
