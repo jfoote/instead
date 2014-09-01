@@ -28,8 +28,9 @@ import com.google.android.gms.location.LocationRequest;
  */
 public class LocationMonitor  {
     public static final int CONNECTION_FAILURE_RESOLUTION_REQUEST = 9999;
+    private PendingIntent mAlarmIntent = null;
 
-    public static boolean start(Context context) {
+    public boolean start(Context context) {
 
         // ASSERT(stopped)
 
@@ -43,19 +44,17 @@ public class LocationMonitor  {
         // Create an alarm to periodically get location updates
         AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         Intent i = new Intent(context, LocationAlarmReceiver.class);
-        PendingIntent pi = PendingIntent.getBroadcast(context, 0, i, 0);
-        am.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), 1000 * 60 * 2, pi); // Millisec * Second * Minute
+        mAlarmIntent = PendingIntent.getBroadcast(context, 0, i, 0);
+        am.setInexactRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), 1000 * 15 * 1, mAlarmIntent); // Millisec * Second * Minute
         Log.d("LocationMonitor", "AlarmManager.setRepeating called");
 
         return true;
     }
 
-    public static void stop(Context context) {
+    public void stop(Context context) {
 
         // Cancel the location-monitor alarm
-        Intent intent = new Intent(context, LocationMonitor.class);
-        PendingIntent sender = PendingIntent.getBroadcast(context, 0, intent, 0);
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-        alarmManager.cancel(sender);
+        alarmManager.cancel(mAlarmIntent);
     }
 }

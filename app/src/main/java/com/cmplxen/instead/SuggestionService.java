@@ -39,11 +39,11 @@ This file contains the core component of the application -- the suggestion servi
 // very roughly implemented place lookup -- need to parse json and display it somehow
 // TODO:
 //    - re-work design so that NetworkService is not an IntentService
-//        - probably best to re-work location to use less power/poll as a starting point
-//    - match Places types to suggestion categories
-//    - add more suggestions
 //    - make display pretty
 //        - made font bigger; need to make a widget as well
+//        - consider modularizing a "LockScreenFeed" later
+//    - match Places types to suggestion categories
+//    - add more suggestions
 //    - test; re-design for test (and knowledge of threats)
 
 
@@ -69,6 +69,8 @@ public class SuggestionService extends Service {
 
     private LockScreenReceiver mLockScreenReceiver;
     private SuggestionFeed mFeed;
+    private LocationMonitor mLocationMonitor;
+
     public static final String INITIALIZE_ACTION = "com.cmplxen.instead.intent.action.INITIALIZE_ACTION";
 
     public static final String SUGGESTION_SEEN_ACTION = "com.cmplxen.instead.intent.action.SUGGESTION_SEEN_ACTION";
@@ -125,7 +127,8 @@ public class SuggestionService extends Service {
             mLockScreenReceiver.register();
 
             // TODO: break this out into a separate option
-            LocationMonitor.start(getApplicationContext()); // TODO: handle return value or switch to try/catch
+            mLocationMonitor = new LocationMonitor();
+            mLocationMonitor.start(getApplicationContext()); // TODO: handle return value or switch to try/catch
 
         } else if (action == SuggestionService.SUGGESTION_SEEN_ACTION) {
             // This is passed from the screen lock broadcast receiver when the user
@@ -142,7 +145,7 @@ public class SuggestionService extends Service {
     public void onDestroy() {
         Log.d("suggestion_service", "destroyed");
         mLockScreenReceiver.unregister();
-        LocationMonitor.stop(getApplicationContext());
+        mLocationMonitor.stop(getApplicationContext());
         mLockScreenReceiver = null;
         mFeed = null;
     }
