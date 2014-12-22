@@ -2,7 +2,7 @@
 
 A half-baked, experimental Android app designed to keep you present, happy, and off your damn smartphone. 
 
-_Warning This code not complete -- the project builds and runs, but lacks functionality, comments, unit tests, and so on._
+_Warning This code not complete -- the project builds and runs (Android 4), but lacks functionality, comments, unit tests, and so on._
 
 ## Story
 
@@ -14,6 +14,13 @@ I generally really enjoy focused time on my PC and mobile devices, but I put a h
 
 So, I've published what I've gotten so far in case someone might find the concept or code snippets useful. If you have any questions or are interested in this philosophy feel free to [drop me a line](mailto:jmfoote@loyola.edu).
 
+## State of the app
+
+The goal of the app was to download lists of things to do in the real world based on the user's location in a fashion that allows the end user to own their data (as opposed to how Google, Facebook, etc. do their its-not-evil-if-u-like-it evil thing).
+
+The app displays suggestions from a dummy list of things to to the user's lock screen when it is enabled. The "list" is a priority queue that factors in how many times a user has seen a particular idea to try to keep things fresh. There may be some stub code in there to try to determine if the user "ignored" an idea and factor that in as well. 
+
+When enabled, the app grabs the user's location and uses some Google APIs to figure out what class of location they are at. It never got connected back to the list mechanism.
 
 ## Functional Design Notes
 
