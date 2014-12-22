@@ -1,18 +1,18 @@
 # Instead
 
-A half-baked, experimental app designed to keep you present, happy, and off your damn smartphone. 
+A half-baked, experimental Android app designed to keep you present, happy, and off your damn smartphone. 
 
-*Warning* This code not complete -- the project builds and runs, but lacks functionality, comments, unit tests, and so on.
+_Warning This code not complete -- the project builds and runs, but lacks functionality, comments, unit tests, and so on._
 
 ## Story
 
-I gave up my smartphone for 2.5 years and it was great. However, I was taking fewer pictures of my kids and had to occassionally borrow my wife's smartphone so I could tether my laptop for business trips (which was easy thanks to [Ting](https://www.ting.com)). 
+I gave up my smartphone for 2.5 years and it was great. However, I was taking fewer pictures of my kids and had to occassionally borrow my wife's smartphone so I could tether my laptop for business trips (thanks [Ting](https://www.ting.com) for being awesome).
 
 This app was developed for personal use while I was waiting for the Nexus 5 price to drop. Once I got ahold of a Nexus 5 I figured out that not installing any output-oriented apps, disabling/signing-out of bothersome Google apps (including gmail/inbox), and neutering the browser was sufficient for my use case. 
 
 I generally really enjoy focused time on my PC and mobile devices, but I put a high premium on the time that I spend using them. So, while I think this app could help some folks, competing priorities with my day job and side research have prevented me from finishing it. 
 
-So, I've published what I've gotten so far in case someone might find the concept or code snippets useful. 
+So, I've published what I've gotten so far in case someone might find the concept or code snippets useful. If you have any questions or are interested in this philosophy feel free to [drop me a line](mailto:jmfoote@loyola.edu).
 
 
 ## Functional Design Notes
