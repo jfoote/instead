@@ -8,7 +8,7 @@ _Warning This code not complete -- the project builds and runs (Android 4), but 
 
 I gave up my smartphone for 2.5 years and it was great. However, I was taking fewer pictures of my kids and had to occassionally borrow my wife's smartphone so I could tether my laptop for business trips (thanks [Ting](https://www.ting.com) for being awesome).
 
-This app was developed for personal use while I was waiting for the Nexus 5 price to drop. Once I got ahold of a Nexus 5 I figured out that not installing any output-oriented apps, disabling/signing-out of bothersome Google apps (including gmail/inbox), and neutering the browser was sufficient for my use case. 
+This app was [partially-]developed for personal use while I was waiting for the Nexus 5 price to drop. Once I got ahold of a Nexus 5 I figured out that not installing any output-oriented apps, disabling/signing-out of bothersome Google apps (including gmail/inbox), and neutering the browser was sufficient for my use case. 
 
 I generally really enjoy focused time on my PC and mobile devices, but I put a high premium on the time that I spend using them. So, while I think this app could help some folks, competing priorities with my day job and side research have prevented me from finishing it. 
 
