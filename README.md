@@ -1,5 +1,20 @@
 # Instead
 
+A half-baked, experimental app designed to keep you present, happy, and off your damn smartphone. 
+
+*Warning* This code not complete -- the project builds and runs, but lacks functionality, comments, unit tests, and so on.
+
+## Story
+
+I gave up my smartphone for 2.5 years and it was great. However, I was taking fewer pictures of my kids and had to occassionally borrow my wife's smartphone so I could tether my laptop for business trips (which was easy thanks to [Ting](https://www.ting.com)). 
+
+This app was developed for personal use while I was waiting for the Nexus 5 price to drop. Once I got ahold of a Nexus 5 I figured out that not installing any output-oriented apps, disabling/signing-out of bothersome Google apps (including gmail/inbox), and neutering the browser was sufficient for my use case. 
+
+I generally really enjoy focused time on my PC and mobile devices, but I put a high premium on the time that I spend using them. So, while I think this app could help some folks, competing priorities with my day job and side research have prevented me from finishing it. 
+
+So, I've published what I've gotten so far in case someone might find the concept or code snippets useful. 
+
+
 ## Functional Design Notes
 
 The primary entry point to the system is the SettingsActivity (SettingsActivity.java). When the user enables suggestions, an instance of SuggestionService (SuggestionService.java) is created. SuggestionService orchestrates communication and resource allocation for the application, including creating and adjusting the SuggestionFeed (SuggestionFeed.java), which is the actual feed of suggestions that is shown to the user when they wake their device.
